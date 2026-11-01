@@ -1,0 +1,71 @@
+services:
+  db:
+    image: mariadb:11.4
+    container_name: reservas-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Defina MARIADB_ROOT_PASSWORD no .env}
+      MARIADB_DATABASE: reservas
+      MARIADB_USER: reservas_app
+      MARIADB_PASSWORD: ${DB_APP_PASSWORD:?Defina DB_APP_PASSWORD no .env}
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./sql/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./sql/02_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mariadb-admin ping -h 127.0.0.1 -uroot -p"$${MARIADB_ROOT_PASSWORD}" --silent
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  fila:
+    image: rabbitmq:4-management
+    container_name: reservas-fila
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-reservas}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD no .env}
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  worker:
+    build:
+      context: ./worker
+    container_name: reservas-worker
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: reservas
+      DB_USER: reservas_app
+      DB_PASSWORD: ${DB_APP_PASSWORD:?Defina DB_APP_PASSWORD no .env}
+      RABBITMQ_HOST: fila
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-reservas}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD no .env}
+      RABBITMQ_QUEUE: reservas.solicitacoes
+    depends_on:
+      db:
+        condition: service_healthy
+      fila:
+        condition: service_healthy
+
+volumes:
+  mariadb_data:
+  rabbitmq_data:

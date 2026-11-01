@@ -1,0 +1,35 @@
+{
+  "vhosts": [
+    { "name": "/" }
+  ],
+  "exchanges": [
+    {
+      "name": "reservas.exchange",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "reservas.solicitacoes",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "reservas.exchange",
+      "vhost": "/",
+      "destination": "reservas.solicitacoes",
+      "destination_type": "queue",
+      "routing_key": "reserva.solicitar",
+      "arguments": {}
+    }
+  ]
+}

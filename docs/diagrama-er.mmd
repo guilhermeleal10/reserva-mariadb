@@ -1,0 +1,41 @@
+erDiagram
+    USUARIO ||--o{ RESERVA : solicita
+    RECURSO ||--o{ RESERVA : recebe
+    RESERVA o|--o{ MENSAGEM_IDEMPOTENCIA : resultado_de
+
+    USUARIO {
+        bigint id PK
+        varchar nome
+        varchar email UK
+        varchar senha_hash
+        enum perfil
+        boolean ativo
+    }
+    RECURSO {
+        bigint id PK
+        varchar nome
+        enum tipo
+        varchar descricao
+        varchar localizacao
+        int capacidade
+        enum status
+    }
+    RESERVA {
+        bigint id PK
+        bigint usuario_id FK
+        bigint recurso_id FK
+        datetime inicio
+        datetime fim
+        enum status
+        varchar observacao
+        timestamp criado_em
+    }
+    MENSAGEM_IDEMPOTENCIA {
+        varchar message_id PK
+        char payload_hash
+        enum status
+        bigint reserva_id FK
+        varchar resultado
+        timestamp recebida_em
+        datetime processada_em
+    }

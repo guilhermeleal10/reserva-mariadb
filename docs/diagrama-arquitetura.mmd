@@ -1,0 +1,8 @@
+flowchart LR
+    U[Usuario] -->|HTTPS: solicita reserva| API[API / Aplicacao]
+    API -->|publica mensagem persistente| Q[(RabbitMQ: fila reservas)]
+    Q -->|entrega mensagem| W[Worker de reservas]
+    W -->|CALL sp_criar_reserva| DB[(MariaDB / InnoDB)]
+    DB -->|resultado e reserva_id| W
+    W -->|ACK somente apos COMMIT| Q
+    API -->|consulta status em mensagem_idempotencia| DB
